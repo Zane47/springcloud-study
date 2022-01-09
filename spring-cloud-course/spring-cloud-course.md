@@ -1251,9 +1251,9 @@ course-list, course-price, eureka-Server都启动后
 
 ![image-20220109233818237](img/spring-cloud-course/image-20220109233818237.png)
 
+# 整合两个服务
 
-
-
+CourseAndPrice, 课程和价格匹配产生的融合类
 
 
 
