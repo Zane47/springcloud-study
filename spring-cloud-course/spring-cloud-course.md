@@ -1055,33 +1055,60 @@ public class CoursePriceController {
 
 <img src="img/spring-cloud-course/image-20220109162814547.png" alt="image-20220109162814547" style="zoom:67%;" />
 
-远程调用成功
-
-
-
-
+可以看到price中调用到了模块list的接口, 远程调用成功
 
 # Ribbon负载均衡
 
+## 负载均衡的类型
 
+* 客户端负载均衡(Ribbon)
 
+* 服务端负载均衡(Nginx)
 
+Client端LB: 调用时, client可以得知有多少结点提供服务, 由client考虑调用哪个, 不让某个结点压力过大
 
+Server端LB: 所有请求打到nginx结点, 由nginx进行分发.
 
+两种LB可以同时存在. 对于大型项目, 对于client自然是用nginx不对client暴露. 但是对于内部服务之间的相互调用就咩有必要使用nginx, 如果使用nginx就是无效加长链路, 所以在服务内部之间的调用使用Ribbon即可.
 
+## 负载均衡策略
 
+RandomRule: 随机策略. 每次都随机调用
 
+RoundRobinRule: 轮询策略, 使用最多. 
 
+ResponseTimeWeightedRule: 加权策略, 根据每一个Server的平均响应时间动态加权. 判断评估, cpu差异时, 根据平均响应时间给更快的cpu更多的请求压力.
 
+---
 
+在项目中配置不同的负载均衡方式:
 
+Ribbon.NFLoadBalancerRuleClassName
 
+## course-price
 
+course-price中调用其他模块, 因此在course-price中添加lb
 
+1. 在application.properties中添加配置
 
+首先指定对哪个模块要负载均衡
 
+```properties
+# ribbon lb, 首先指定对哪个模块要负载均衡
+course-list.ribbon.NFLoadBanlancerRuleClassName=com.netflix.loadbalancer.RoundRobinRule
+```
 
 # Hystrix断路器
+
+## 为什么需要断路器
+
+
+
+
+
+
+
+
 
 
 
@@ -1102,6 +1129,14 @@ public class CoursePriceController {
 
 
 # 网关Zuul
+
+## 为什么需要网关
+
+
+
+
+
+
 
 
 
