@@ -41,6 +41,8 @@ Spring Cloud简洁 -> 目整体设计 -> 课程列表模块开发 -> 课程价�
 
 ## 表设计
 
+name -> course_name
+
 ![image-20220108160731011](img/spring-cloud-course/image-20220108160731011.png)
 
 ![image-20220108160821261](img/spring-cloud-course/image-20220108160821261.png)
@@ -211,7 +213,7 @@ import lombok.Setter;
 public class Course {
     Integer id;
     Integer courseId;
-    String name;
+    String courseName;
     Integer valid;
 }
 ```
@@ -312,7 +314,7 @@ public interface CourseMapper {
 
 ## 运行查看效果
 
-1. 返回数据
+### 驼峰对应
 
 ![image-20220109103948893](img/spring-cloud-course/image-20220109103948893.png)
 
@@ -328,6 +330,97 @@ mybatis.configuration.map-underscore-to-camel-case=true
 重启后查看
 
 ![image-20220109104047176](img/spring-cloud-course/image-20220109104047176.png)
+
+### 实体类序列化
+
+上文中直接使用lombok设置getter和setter
+
+如果不适用lombok, 会报错
+
+```
+com.fasterxml.jackson.databind.exc.InvalidDefinitionException: No serializer found for class com.imooc.course.entity.Course and no properties discovered to create BeanSerializer (to avoid exception, disable SerializationFeature.FAIL_ON_EMPTY_BEANS) (through reference chain: java.util.ArrayList[0])
+```
+
+所以如果不适用lombok, 就让实体类实现接口Serializable并且实现getter和setter
+
+```java
+package com.imooc.course.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.io.Serializable;
+
+/**
+ * course 实体类
+ */
+
+public class Course implements Serializable {
+    Integer id;
+    Integer courseId;
+    String courseName;
+    Integer valid;
+
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public Integer getCourseId() {
+        return courseId;
+    }
+
+    public void setCourseId(Integer courseId) {
+        this.courseId = courseId;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public Integer getValid() {
+        return valid;
+    }
+
+    public void setValid(Integer valid) {
+        this.valid = valid;
+    }
+}
+```
+
+这里仍然使用按照习惯使用lombok
+
+```java
+package com.imooc.course.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.io.Serializable;
+
+/**
+ * course 实体类
+ */
+@Getter
+@Setter
+@ToString
+public class Course /*implements Serializable*/ {
+    Integer id;
+    Integer courseId;
+    String courseName;
+    Integer valid;
+}
+
+```
 
 
 
