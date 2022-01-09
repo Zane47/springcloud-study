@@ -905,19 +905,157 @@ logging.pattern.console=15:49:21.819 - INFO 6692 --- [           main] com.netfl
 
 # 服务调用Feign(Open Feign)
 
+## Feign介绍
+
+Feign: 声明式, 模板化的http客户端. spring cloud中使用Feign, 很方便的调用http远程请求. 
+
+* 方便: 调用远程请求就像调用本地方法
+
+* Feign基于接口和注解的方式实现
+
+<img src="img/spring-cloud-course/image-20220109155923509.png" alt="image-20220109155923509" style="zoom:67%;" />
+
+1. Producer向注册中心(Eureka)注册
+2. Consumer从注册中心中获取可以使用的服务地址. Consumer使用Ribbon做负载均衡
+3. 一般是http请求. 如果不使用Feign, 就需要自己手写http请求, 参数, 请求头, cookie等. -> 使用Feign
+
+## 集成Feign
+
+引入依赖 -> 配置文件 -> 注解
+
+项目中是course-price调用course-list服务, 所以在course-price中引入
+
+1. price项目中引入pom依赖
+
+```xml
+<!-- openfeign -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+```
+
+2. 配置
+
+在application.properties中添加负载均衡配置 -> 后节
+
+这里先实现最基本的调用
+
+3. 添加启动注解
+
+启动类中添加注解@EnableFeignClients
+
+```java
+package com.imooc.course;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+@SpringBootApplication
+@EnableFeignClients
+public class CoursePriceApplication {
+    public static void main(String[] args) {
+
+        SpringApplication.run(CoursePriceApplication.class, args);
+    }
+}
+```
+
+4. 添加Feign Client
+
+```java
+package com.imooc.course.client;
 
 
+import com.imooc.course.entity.Course;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 
+import java.util.List;
 
+/**
+ * 课程列表Feign客户端
+ * 根据course-list中的定义来使用
+ *
+ * 因为服务很多, 所以需要添加参数表明是哪个服务的
+ */
+@FeignClient("course-list")
+public interface CourseListClient {
+    
+    @GetMapping("/courses")
+    List<Course> getCourseList();
+    
+}
+```
 
+@FeignClient("course-list"): 因为服务很多, 所以需要添加参数表明是哪个服务的
 
+其中的Course需要添加依赖
 
+![image-20220109161512092](img/spring-cloud-course/image-20220109161512092.png)
 
+查看course-price的pom文件, 其中增加了依赖
 
+```xml
+<!-- course-list course -->
+<dependency>
+    <groupId>com.example</groupId>
+    <artifactId>course-list</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+    <scope>compile</scope>
+</dependency>
+```
 
+5. Controller中调用client
 
+这里拿到接口后结果即可. 后续再做负载均衡和断路器等扩展处理
 
+```java
+package com.imooc.course.controller;
 
+import com.imooc.course.client.CourseListClient;
+import com.imooc.course.entity.Course;
+import com.imooc.course.entity.CoursePrice;
+import com.imooc.course.service.CoursePriceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class CoursePriceController {
+
+    @Autowired
+    private CoursePriceService coursePriceService;
+
+    @Autowired
+    private CourseListClient feignClient;
+
+    @GetMapping("/price")
+    public Float getCoursePrice(Integer courseId) {
+        final CoursePrice coursePrice = coursePriceService.getCoursePrice(courseId);
+        return coursePrice.getPrice();
+    }
+
+    // course-price中调用course-list
+    @GetMapping("/coursesInPrice")
+    public List<Course> getCourseListInPrice() {
+        return feignClient.getCourseList();
+    }
+}
+```
+
+6. 测试
+
+运行三个springboot项目
+
+浏览器访问: `http://localhost:8082/coursesInPrice`
+
+<img src="img/spring-cloud-course/image-20220109162814547.png" alt="image-20220109162814547" style="zoom:67%;" />
+
+远程调用成功
 
 
 
