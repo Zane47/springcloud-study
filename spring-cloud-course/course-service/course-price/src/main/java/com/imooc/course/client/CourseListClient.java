@@ -3,6 +3,7 @@ package com.imooc.course.client;
 
 import com.imooc.course.entity.Course;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.context.annotation.Primary;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
@@ -13,7 +14,8 @@ import java.util.List;
  *
  * 因为服务很多, 所以需要添加参数表明是哪个服务的
  */
-@FeignClient("course-list")
+@FeignClient(value = "course-list", fallback = CourseListClientHystrix.class)
+@Primary
 public interface CourseListClient {
 
     @GetMapping("/courses")

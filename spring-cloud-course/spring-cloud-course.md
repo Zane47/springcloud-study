@@ -1102,19 +1102,154 @@ course-list.ribbon.NFLoadBanlancerRuleClassName=com.netflix.loadbalancer.RoundRo
 
 ## 为什么需要断路器
 
+如果出现了延迟, 会怎么样?
+
+<img src="img/spring-cloud-course/image-20220109230027587.png" alt="image-20220109230027587" style="zoom:67%;" />
+
+client的一条请求依赖多个模块, 碰巧dependency I出现了问题, 导致了很大的延迟. 假设该服务I是链路中的入口(例如查询用户信息), 那么其他模块也无法工作, 卡在该模块. 其他模块也无法工作, user就会感觉到卡顿.
+
+假设该服务提供给多个用户, 那么其他的接口就都无法正常运转. 那么一但有用户信息发过来, 就会卡在该模块. 请求卡在该模块, 同时之前链路拿到的模块也不会释放, 例如前面有模块获得到数据库连接, 由连接池管理, 如果很多连接数上来, 并且得不到释放, 那么数据库就会被拖垮. -> 最终导致数据库不可用, 最后整个资源都不可用.
+
+<img src="img/spring-cloud-course/image-20220109230331604.png" alt="image-20220109230331604" style="zoom:67%;" />
+
+所以Spring cloud就实现了断路器, 起到了保护作用. 当某一个单元发生故障的时候, 使用断路器将该单元隔离出去, 保护整个系统. -> Hystrix
+
+当某个服务发生了错误, 返回默认响应或者错误响应, 而不是让用户长时间等待. 不会让占用的资源得不到释放. 避免分布式系统中故障的蔓延.
+
+例如: 天猫下单或者访问商品详情的时候, 流量大的时候返回页面"流量太大请稍后重试". 这就是天猫的提供的短路功能. 提供兜底逻辑
+
+## 编码引入
+
+依赖 -> 配置 -> 注解 -> 发生错误时的处理逻辑
+
+此处在price中添加断路器, 因为price中无法保证list的启动与否
+
+1. price添加断路器pom依赖
+
+```xml
+<!-- hystrix 断路器 -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-hystrix</artifactId>
+</dependency>
+```
+
+2. 添加配置
+
+```properties
+# hystrix断路器配置
+feign.hystrix.enabled=true
+```
+
+3. 添加启动注解
+
+断路器注解: @EnableCircuitBreaker
+
+```java
+@SpringBootApplication
+@EnableFeignClients
+@EnableCircuitBreaker
+public class CoursePriceApplication {}
+```
+
+4. 编写断路器生效时候的处理
+
+course-price中会发生错误的就是在调用course-list的CourseListClient接口中
+
+对注解@FeignClient添加参数fallback, 指定错误处理方法.
+
+默认情况下调用远端服务. 如果发生错误, 就执行指定的错误处理方法CourseListClientHystrix
+
+```java
+package com.imooc.course.client;
 
 
+import com.imooc.course.entity.Course;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.GetMapping;
 
+import java.util.List;
 
+/**
+ * 课程列表Feign客户端
+ * 根据course-list中的定义来使用
+ *
+ * 因为服务很多, 所以需要添加参数表明是哪个服务的
+ */
+@FeignClient(value = "course-list", fallback = CourseListClientHystrix.class)
+public interface CourseListClient {
 
+    @GetMapping("/courses")
+    List<Course> getCourseList();
 
+}
+```
 
+CourseListClientHystrix需要添加@Component注解
 
+```java
+package com.imooc.course.client;
 
+import com.imooc.course.entity.Course;
+import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
+/**
+ * 断路器实现类
+ */
+@Component
+public class CourseListClientHystrix implements CourseListClient {
 
+    @Override
+    public List<Course> getCourseList() {
+        final List<Course> defaultCourse = new ArrayList<>();
+        // 实际生产中添加首页课程或者热卖课程
+        Course course = new Course();
+        course.setId(1);
+        course.setCourseId(1);
+        course.setCourseName("default course name");
+        course.setValid(1);
+        defaultCourse.add(course);
+        return defaultCourse;
 
+        // 或者直接返回空列表
+        // return Collections.emptyList();
+    }
+}
+```
+
+5. controller中报错
+
+编写完成后发现Controller中的注入参数报错
+
+![image-20220109232406397](img/spring-cloud-course/image-20220109232406397.png)
+
+不管他也没有关系, 对于feign来说, 他是在调用的时候才知道应该去选择哪一个注入.
+
+或者添加@Primary注解
+
+```java
+@FeignClient(value = "course-list", fallback = CourseListClientHystrix.class)
+@Primary
+public interface CourseListClient {}
+```
+
+6. 测试
+
+course-list, course-price, eureka-Server都启动后
+
+浏览器: `http://localhost:8082/coursesInPrice`. course-price模块可以正常获得course-list数据.
+
+<img src="img/spring-cloud-course/image-20220109233714763.png" alt="image-20220109233714763" style="zoom:67%;" />
+
+停止course-list或者给course-list中方法getCourseList下断点
+
+断路器触发, 返回处理方法
+
+![image-20220109233818237](img/spring-cloud-course/image-20220109233818237.png)
 
 
 
