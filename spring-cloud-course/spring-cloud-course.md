@@ -47,21 +47,126 @@ Spring Cloud简洁 -> 目整体设计 -> 课程列表模块开发 -> 课程价�
 
 ## 新建多模块项目
 
-1. 新建Spring Initializr
+1. Spring Initializr新建项目spring-cloud-course
+1. 删除spring-cloud-course的src文件目录
+
+3. 右击spring-cloud-course, 新建module, maven项目
+
+![image-20220109091040695](img/spring-cloud-course/image-20220109091040695.png)
+
+name: course-service: 存放课程服务
+
+<img src="img/spring-cloud-course/image-20220109091121336.png" alt="image-20220109091121336" style="zoom:67%;" />
+
+4. 删除course-service中的src. 同时在此module上右键新建模块course-list
+
+注意这里的parent要选择course-service
+
+<img src="img/spring-cloud-course/image-20220109091250888.png" alt="image-20220109091250888" style="zoom:67%;" />
+
+5. 一样的流程, 再在course-service下新建模块course-price
+
+parent仍未course-service
+
+---
+
+最后的项目结构
+
+![image-20220109091632943](img/spring-cloud-course/image-20220109091632943.png)
+
+
+
+
+
+
+
+
+
+
+
+
 
 # 课程列表模块
 
+
+
+
+
+
+
+
+
+
+
+
+
 # 课程价格模块
+
+
+
+
+
+
 
 # 服务注册Eureka
 
+
+
+
+
+
+
+
+
+
+
 # 服务调用Feign
+
+
+
+
+
+
+
+
+
+
 
 # Ribbon负载均衡
 
+
+
+
+
+
+
+
+
+
+
 # Hystrix断路器
 
+
+
+
+
+
+
+
+
+
+
 # 网关Zuul
+
+
+
+
+
+
+
+
+
+
 
 # 测试
 
