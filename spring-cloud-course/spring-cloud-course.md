@@ -211,7 +211,7 @@ import lombok.Setter;
 public class Course {
     Integer id;
     Integer courseId;
-    String courseName;
+    String name;
     Integer valid;
 }
 ```
@@ -310,9 +310,28 @@ public interface CourseMapper {
 }
 ```
 
-## 报错修改
+## 运行查看效果
 
-运行项目
+1. 返回数据
+
+![image-20220109103948893](img/spring-cloud-course/image-20220109103948893.png)
+
+可以看到courseId没有赋值, 需要开启驼峰对应
+
+在application.properties中添加配置
+
+```properties
+# mybatis Camel-Case
+mybatis.configuration.map-underscore-to-camel-case=true
+```
+
+重启后查看
+
+![image-20220109104047176](img/spring-cloud-course/image-20220109104047176.png)
+
+
+
+
 
 
 

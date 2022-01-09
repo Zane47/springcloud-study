@@ -11,6 +11,6 @@ import lombok.Setter;
 public class Course {
     Integer id;
     Integer courseId;
-    String courseName;
+    String name;
     Integer valid;
 }
