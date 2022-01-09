@@ -818,6 +818,8 @@ eureka.client.service-url.defaultZone=http://${eureka.instance.hostname}:${serve
 
 4. 声明springboot和EurekaServer启动类
 
+使用注解: @EnableEurekaServer
+
 ```java
 package com.imooc.course;
 
@@ -842,21 +844,66 @@ public class EurekaServerApplication {
 
 ## Eureka Client改造
 
+将course-list和course-price注册到eurekaServer上
 
+引入依赖 -> 配置文件
 
+### course-list
 
+1. course-list pom中引入eureka-client依赖
 
+```xml
+<!-- eureka-client -->
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+</dependency>
+```
 
+2. application.properties中添加eureka-client配置
 
+启动的时候自动注册到该地址上去
 
+```properties
+eureka.client.service-url.defaultZone=http://localhost:8000/eureka/
+```
 
+3. 测试
 
+启动Eureka-server, 然后再启动eureka-client
 
+可以看到注册成功
 
+![image-20220109154207708](img/spring-cloud-course/image-20220109154207708.png)
 
+Availability Zones; 可用区. 理解为可以使用的数量
 
+### course-price
 
-# 服务调用Feign
+与上文类似. 
+
+日志
+
+```
+logging.pattern.console=15:49:21.671 - INFO 6692 --- [           main] com.netflix.discovery.DiscoveryClient    : Getting all instance registry info from the eureka server
+logging.pattern.console=15:49:21.819 - INFO 6692 --- [           main] com.netflix.discovery.DiscoveryClient    : The response status is 200
+```
+
+![image-20220109155218641](img/spring-cloud-course/image-20220109155218641.png)
+
+---
+
+### 注意点
+
+有的时候会在client启动类上增加注解@EnableEurekaClient
+
+但是这里不需要, 因为引入的依赖是`spring-cloud-starter-netflix-eureka-client`, 可以省略client注解
+
+---
+
+[EMERGENCY! EUREKA MAY BE INCORRECTLY CLAIMING INSTANCES ARE UP WHEN THEY'RE NOT. RENEWALS ARE LESSER THAN THRESHOLD AND HENCE THE INSTANCES ARE NOT BEING EXPIRED JUST TO BE SAFE](https://developer.aliyun.com/article/651183)
+
+# 服务调用Feign(Open Feign)
 
 
 
