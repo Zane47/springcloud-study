@@ -47,7 +47,7 @@ Spring Cloud简洁 -> 目整体设计 -> 课程列表模块开发 -> 课程价�
 
 ## 新建多模块项目
 
-1. Spring Initializr新建项目spring-cloud-course
+1. Spring Initializr新建项目spring-cloud-course. 2.1.12.RELEASE
 1. 删除spring-cloud-course的src文件目录
 
 3. 右击spring-cloud-course, 新建module, maven项目
@@ -74,6 +74,245 @@ parent仍未course-service
 
 ![image-20220109091632943](img/spring-cloud-course/image-20220109091632943.png)
 
+**Spring Cloud模块都是一个个spring boot项目**
+
+# 课程列表模块course-list
+
+## 基本设置流程
+
+### 添加依赖+设置springboot启动文件
+
+* 项目为springboot项目, 需要添加相对应的依赖. 
+
+* 同时引入数据库mybatis相关依赖. 
+
+* 还需要添加springboot maven项目的插件
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>course-service</artifactId>
+        <groupId>com.example</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>course-list</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- springboot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- mybatis + db -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+        
+        <!-- lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.12</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+为项目添加启动文件CourseListApplication.java
+
+```java
+package com.imooc.course;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+/**
+ * 项目启动类
+ */
+@SpringBootApplication
+public class CourseListApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(CourseListApplication.class, args);
+    }
+}
+```
+
+### 添加配置文件, application.properties
+
+端口
+
+数据库driver + url + name +pwd
+
+日志
+
+应用名称
+
+```properties
+#port
+server.port=8081
+
+#db
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+spring.datasource.url=jdbc:mysql://114.55.64.149:3318/springcloudlearn?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=true
+spring.datasource.username=root
+spring.datasource.password=
+
+#log
+logging.pattern.console=logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN:HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}
+
+#application name
+spring.application.name=course-list
+```
+
+### 书写基本结构
+
+<img src="img/spring-cloud-course/image-20220109103046479.png" alt="image-20220109103046479" style="zoom:50%;" />
+
+1. 新建Course entity
+
+```java
+package com.imooc.course.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+
+/**
+ * course 实体类
+ */
+@Setter
+@Getter
+public class Course {
+    Integer id;
+    Integer courseId;
+    String courseName;
+    Integer valid;
+}
+```
+
+2. Controller层
+
+```java
+package com.imooc.course.controller;
+
+import com.imooc.course.entity.Course;
+import com.imooc.course.service.CourseListService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@RestController
+public class CourseListController {
+
+    @Autowired
+    private CourseListService courseListService;
+	
+    @GetMapping("/courses")
+    public List<Course> getCourseList() {
+        return courseListService.getCourseList();
+    }
+}
+```
+
+3. Service层
+
+```java
+package com.imooc.course.service;
+
+
+import com.imooc.course.entity.Course;
+
+import java.util.List;
+
+
+public interface CourseListService {
+    public List<Course> getCourseList();
+}
+```
+
+```java
+package com.imooc.course.service.impl;
+
+import com.imooc.course.dao.CourseMapper;
+import com.imooc.course.entity.Course;
+import com.imooc.course.service.CourseListService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+/**
+ * 课程服务实现类
+ */
+@Service
+public class CourseListServiceImpl implements CourseListService {
+
+    @Autowired
+    private CourseMapper courseMapper;
+
+
+    @Override
+    public List<Course> getCourseList() {
+        return courseMapper.findValidCourse();
+    }
+}
+```
+
+4. dao层
+
+```java
+package com.imooc.course.dao;
+
+import com.imooc.course.entity.Course;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Select;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+/**
+ * 课程mapper类
+ */
+@Mapper
+@Repository
+public interface CourseMapper {
+
+    @Select("select * from course where valid = 1")
+    public List<Course> findValidCourse();
+
+}
+```
+
+## 报错修改
+
+运行项目
 
 
 
@@ -86,21 +325,8 @@ parent仍未course-service
 
 
 
-# 课程列表模块
 
-
-
-
-
-
-
-
-
-
-
-
-
-# 课程价格模块
+# 课程价格模块course-price
 
 
 
