@@ -636,11 +636,211 @@ public interface CoursePriceMapper {
 
 多个服务之间建立联系的前提, 服务注册
 
+## Eureka
+
+### 什么是Eureka
+
+Netflix核心子模块, 用于定位服务. 用于服务的注册与发现, 使用**服务的标识符**来访问服务, 不需要每次都要修改服务的配置文件. 系统中其他微服务可以使用Eureka-client连接到Eureka-server, Eureka会帮助来维护各个服务的实时信息. 新模块也可以通过Eureka-server直接找到各个组件服务的地址.
+
+例子: 
+
+* 114: 各个服务提供者登记注册在114, 群众(服务调用者)要使用的时候去询问114. 同时如果店铺关门或者长期不响应, 114会返回关门 -> 心跳机制, 保证信息可靠. 
+* 公司物业. 维护办公楼中各个公司的信息. 
+
+### 为什么需要服务注册与发现
+
+移除注册中心, 也可以运行, 但是很繁琐. 如果自己来调用:
+
+* IP变化. 如果A服务提供的是http地址, B服务可以在自己服务配置文件中写死, 然后通过http-client调用对方服务. 但是ip和端口号都有可能变化. 
+
+  * 难以维护. A服务地址变化(常见场景, 机器扩容, 业务变动, 服务器到期等). B服务也要跟着变化. 相当于外部依赖变化, 导致自己的代码也需要做代码变更和重新发布. 成本高
+
+  * 影响面. A服务被许多服务调用. 牵一发而动全身, A服务变化, 那么其他的服务都会不可用
+
+所以手动静态配置很繁琐.
+
+---
+
+改进的思路和方案:
+
+服务的Provider的增减变化应该让Consumer及时知晓, 这种知晓不是代码上的改变, 而是尽量无缝衔接. 即使provider变化频繁, consumer也不需要更改. -> 使用服务注册中心
+
+provider将自己的服务地址登记到服务注册中心, consumer不直接调用provider(的ip和端口), 而是先去注册中心查询到一个地址再去调用 -> 无需人工维护结点; 解决多结点的负载均衡(多结点注册上去, 对于consumer有选择地调用)
+
+### Eureka架构
+
+Eureka Server和Eureka Client
+
+<img src="img/spring-cloud-course/image-20220109143007217.png" alt="image-20220109143007217" style="zoom:67%;" />
+
+Eureka Server： 服务注册中心. 独立模块, 不要混在业务模块中. 
+
+Service Provider: 服务提供者. 启动后找到Eureka Server注册中心地址, 将自己的内容注册上去. 最开始的时候注册, 后续也会更新.
+
+Service Consumer: 服务消费者. 启动后调用某些服务. 首先去Eureka Server拿到Registry注册表, 通过注册表拿到最新的服务信息. 再Remote Call远程调用Provider.
+
+---
+
+升级为集群:
+
+<img src="img/spring-cloud-course/image-20220109143317285.png" alt="image-20220109143317285" style="zoom: 50%;" />
+
+3个Eureka Server都是服务注册中心. Eureka Server之间共享信息.
+
+Application Service: 服务提供者. 可以在不同的Eureka Server上注册服务. 
+
+Application Client: 服务调用者. 找到任意一个Eureka Server结点即可, 就可以找到整个服务信息. 
+
+---
+
+总结:
+
+Service Provider: 服务提供者. 
+
+* 启动后找到Eureka Server注册中心地址, 将自己的内容注册上去. 
+* 负责续约, 定期发送心跳, 告诉注册中心自己的存活.
+* 负责下线. 实例正常关闭, 机器缩减等要通知Eureka Server下线
+
+Service Consumer: 服务消费者
+
+* 获取服务. 通过请求得到Eureka Server注册中心, 拿到服务清单
+* 进行调用. 根据清单找到需要的信息进行调用.
+
+Eureka Server: 服务注册中心
+
+* 负责维护. 有服务注册需要记录.
+* 失效剔除. 每隔一段时间(默认60s)查看哪些服务没有续约, 就剔除. 因为服务提供者突然挂掉, 或者没有能力通知注册中心下线
+
+## Eureka-Server
+
+引入依赖 -> 配置文件 -> 启动注解(整个spring boot就有了Eureka Server的能力)
 
 
 
+1. 在spring-cloud-course(根项目)下新建module为eureka-server, maven项目. 与业务代码平级
 
+![image-20220109144241807](img/spring-cloud-course/image-20220109144241807.png)
 
+![image-20220109144456138](img/spring-cloud-course/image-20220109144456138.png)
+
+2. eureka-server修改pom文件
+
+eureka-server.pom
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spring-cloud-course</artifactId>
+        <groupId>com.example</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>eureka-server</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-server</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+---
+
+eureka-server中引入springcloud eureka依赖的时候, 对于Spring Cloud的版本信息, 不要在每一个模块中维护, 而是统一在最外层pom文件中声明信息. 统一整个项目的springcloud版本.
+
+spring-cloud-course中(根目录pom)
+
+```xml
+<!-- 表示Spring Cloud版本 -->
+<dependencyManagement>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-dependencies</artifactId>
+            <version>Greenwich.SR5</version>
+            <type>pom</type>
+            <scope>import</scope>
+        </dependency>
+    </dependencies>
+</dependencyManagement>
+```
+
+3. 增加配置文件
+
+配置name
+
+配置端口
+
+配置eureka
+
+```properties
+spring.application.name=eureka-server
+
+server.port=8000
+
+# eureka config
+# hostname
+eureka.instance.hostname=localhost
+
+# eureka client
+
+# fetch-registry: 获取注册表. 不需要同步其他节点数据. 默认true
+eureka.client.fetch-registry=false
+
+# 是否将自己注册到Eureka Server(自己是否是eureka client), 默认是true。
+# 这里就是server, 没有对外暴露http服务, 其他模块不会调用这里的服务
+eureka.client.register-with-eureka=false
+
+# 服务提供的地址
+eureka.client.service-url.defaultZone=http://${eureka.instance.hostname}:${server.port}/eureka/
+```
+
+4. 声明springboot和EurekaServer启动类
+
+```java
+package com.imooc.course;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.eureka.server.EnableEurekaServer;
+
+@EnableEurekaServer
+@SpringBootApplication
+public class EurekaServerApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(EurekaServerApplication.class, args);
+    }
+}
+```
+
+5. 启动
+
+启动, 访问`http://localhost:8000/`
+
+![image-20220109153229849](img/spring-cloud-course/image-20220109153229849.png)
+
+## Eureka Client改造
 
 
 
@@ -672,6 +872,10 @@ public interface CoursePriceMapper {
 
 
 
+
+
+
+
 # Ribbon负载均衡
 
 
@@ -688,7 +892,15 @@ public interface CoursePriceMapper {
 
 
 
+
+
+
+
 # Hystrix断路器
+
+
+
+
 
 
 
