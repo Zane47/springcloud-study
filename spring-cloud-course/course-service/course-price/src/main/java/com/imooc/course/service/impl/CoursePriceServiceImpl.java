@@ -13,7 +13,7 @@ public class CoursePriceServiceImpl implements CoursePriceService {
     private CoursePriceMapper coursePriceMapper;
 
     @Override
-    public CoursePrice getCoursePrice() {
-        return coursePriceMapper.findCoursePrice();
+    public CoursePrice getCoursePrice(Integer courseId) {
+        return coursePriceMapper.findCoursePrice(courseId);
     }
 }

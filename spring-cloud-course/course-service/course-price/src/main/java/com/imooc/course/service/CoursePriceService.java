@@ -7,6 +7,6 @@ import com.imooc.course.entity.CoursePrice;
  */
 public interface CoursePriceService {
 
-    public CoursePrice getCoursePrice();
+    public CoursePrice getCoursePrice(Integer courseId);
 
 }

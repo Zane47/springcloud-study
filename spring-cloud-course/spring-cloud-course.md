@@ -426,7 +426,7 @@ public class Course /*implements Serializable*/ {
 
 ## 基本配置
 
-### 配置依赖
+### 配置依赖和启动类
 
 一样是springboot应用, 与course-list模块一样配置依赖
 
@@ -483,6 +483,21 @@ public class Course /*implements Serializable*/ {
 </project>
 ```
 
+```java
+package com.imooc.course;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class CoursePriceApplication {
+    public static void main(String[] args) {
+
+        SpringApplication.run(CoursePriceApplication.class, args);
+    }
+}
+```
+
 ### application.properties
 
 course-list中配置文件类似.
@@ -509,29 +524,117 @@ logging.pattern.console=logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN
 spring.application.name=course-price
 ```
 
+### 根据courseId查询课程价格方法
 
+1. Controller层
 
+```java
+package com.imooc.course.controller;
 
+import com.imooc.course.entity.CoursePrice;
+import com.imooc.course.service.CoursePriceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@RestController
+public class CoursePriceController {
 
+    @Autowired
+    private CoursePriceService coursePriceService;
+    @GetMapping("/price")
+    public Float getCoursePrice(Integer courseId) {
+        final CoursePrice coursePrice = coursePriceService.getCoursePrice(courseId);
+        return coursePrice.getPrice();
+    }
+}
+```
 
+2. Service层
 
+```java
+package com.imooc.course.service;
 
+import com.imooc.course.entity.CoursePrice;
 
+/**
+ * 课程价格服务
+ */
+public interface CoursePriceService {
+    public CoursePrice getCoursePrice(Integer courseId);
+}
+```
 
+```java
+package com.imooc.course.service.impl;
 
+import com.imooc.course.dao.CoursePriceMapper;
+import com.imooc.course.entity.CoursePrice;
+import com.imooc.course.service.CoursePriceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
+@Service
+public class CoursePriceServiceImpl implements CoursePriceService {
 
+    @Autowired
+    private CoursePriceMapper coursePriceMapper;
 
+    @Override
+    public CoursePrice getCoursePrice(Integer courseId) {
+        return coursePriceMapper.findCoursePrice(courseId);
+    }
+}
+```
 
+3. entity层
 
+```java
+package com.imooc.course.entity;
 
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
+@Getter
+@Setter
+@ToString
+public class CoursePrice {
+    Integer id;
+    Integer courseId;
+    Float price;
+}
+```
 
+4. dao层
 
+```java
+package com.imooc.course.dao;
 
+import com.imooc.course.entity.CoursePrice;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.springframework.stereotype.Repository;
+
+@Mapper
+@Repository
+public interface CoursePriceMapper {
+
+    @Select("select * from course_price where course_id = #{course_id}")
+    public CoursePrice findCoursePrice(@Param("course_id") Integer courseId);
+}
+```
+
+5. 运行
+
+浏览器中输入查询
+
+`http://localhost:8082/price?courseId=409`
 
 # 服务注册Eureka
+
+多个服务之间建立联系的前提, 服务注册
 
 
 

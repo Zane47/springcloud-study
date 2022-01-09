@@ -10,6 +10,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CoursePriceMapper {
 
-    @Select("select * from CoursePri")
-    public CoursePrice findCoursePrice();
+    @Select("select * from course_price where course_id = #{course_id}")
+    public CoursePrice findCoursePrice(@Param("course_id") Integer courseId);
 }
