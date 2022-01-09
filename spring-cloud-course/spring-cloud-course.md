@@ -422,23 +422,108 @@ public class Course /*implements Serializable*/ {
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 # 课程价格模块course-price
+
+## 基本配置
+
+### 配置依赖
+
+一样是springboot应用, 与course-list模块一样配置依赖
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>course-service</artifactId>
+        <groupId>com.example</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>course-price</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+        <!-- springboot -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <!-- mybatis + db -->
+        <dependency>
+            <groupId>mysql</groupId>
+            <artifactId>mysql-connector-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis.spring.boot</groupId>
+            <artifactId>mybatis-spring-boot-starter</artifactId>
+            <version>2.1.1</version>
+        </dependency>
+        <!-- lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+            <version>1.18.12</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+### application.properties
+
+course-list中配置文件类似.
+
+修改端口号, 修改application name
+
+```properties
+# port
+server.port=8082
+
+# db
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=jdbc:mysql://114.55.64.149:3318/springcloudlearn?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=true
+spring.datasource.username=root
+spring.datasource.password=
+
+# mybatis Camel-Case
+mybatis.configuration.map-underscore-to-camel-case=true
+
+# log
+logging.pattern.console=logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN:HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}
+
+#application name
+spring.application.name=course-price
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -447,6 +532,16 @@ public class Course /*implements Serializable*/ {
 
 
 # 服务注册Eureka
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -470,7 +565,15 @@ public class Course /*implements Serializable*/ {
 
 
 
+
+
+
+
 # Ribbon负载均衡
+
+
+
+
 
 
 
@@ -494,7 +597,19 @@ public class Course /*implements Serializable*/ {
 
 
 
+
+
+
+
 # 网关Zuul
+
+
+
+
+
+
+
+
 
 
 
