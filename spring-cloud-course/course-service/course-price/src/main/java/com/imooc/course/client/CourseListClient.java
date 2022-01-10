@@ -18,6 +18,9 @@ import java.util.List;
 @Primary
 public interface CourseListClient {
 
+    /**
+     * course-list模块中的方法, 根据course-list中的定义来使用
+     */
     @GetMapping("/courses")
     List<Course> getCourseList();
 

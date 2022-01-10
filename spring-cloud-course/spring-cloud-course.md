@@ -1253,7 +1253,104 @@ course-list, course-price, eureka-Server都启动后
 
 # 整合两个服务
 
-CourseAndPrice, 课程和价格匹配产生的融合类
+1. CourseAndPrice, 课程和价格匹配产生的融合类
+
+```java
+package com.imooc.course.entity;
+
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+/**
+ * 课程和价格融合类
+ */
+@Getter
+@Setter
+@ToString
+public class CourseAndPrice {
+    Integer id;
+    Integer courseId;
+    String courseName;
+    Float price;
+}
+```
+
+id, courseId, courseName从Course-list中获取. price从本模块获取
+
+2. Controller新增查询
+
+```java
+@GetMapping("/coursesAndPrice")
+public List<CourseAndPrice> getCourseAndPrice() {
+    return coursePriceService.getCourseAndPrice();
+}
+```
+
+3. Service层
+
+接口中添加
+
+```java
+public interface CoursePriceService {
+
+    public CoursePrice getCoursePrice(Integer courseId);
+
+    public List<CourseAndPrice> getCourseAndPrice();
+
+}
+```
+
+impl中新增实现, 做拼接的具体工作
+
+```java
+/**
+     * 课程列表和课程price做融合处理
+     *
+     * 首先从list模块中拿到所有列表
+     */
+@Override
+public List<CourseAndPrice> getCourseAndPrice() {
+    List<CourseAndPrice> courseAndPriceList = new ArrayList<>();
+
+    List<Course> courseList = feignClient.getCourseList();
+    for (Course course : courseList) {
+        CoursePrice coursePrice = getCoursePrice(course.getCourseId());
+        Optional.ofNullable(coursePrice).ifPresent(price -> {
+            CourseAndPrice courseAndPrice = new CourseAndPrice();
+            courseAndPrice.setId(course.getId());
+            courseAndPrice.setCourseId(course.getCourseId());
+            courseAndPrice.setCourseName(course.getCourseName());
+            courseAndPrice.setPrice(price.getPrice());
+            courseAndPriceList.add(courseAndPrice);
+        });
+    }
+
+    return courseAndPriceList;
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+![image-20220110141204174](img/spring-cloud-course/image-20220110141204174.png)
+
+
 
 
 
@@ -1267,7 +1364,9 @@ CourseAndPrice, 课程和价格匹配产生的融合类
 
 ## 为什么需要网关
 
+如果没有网关: 
 
+* 签名校验, 登录校验冗余问题
 
 
 
