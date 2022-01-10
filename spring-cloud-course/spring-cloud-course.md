@@ -1467,10 +1467,44 @@ eureka.client.service-url.defaultZone=http://localhost:8000/eureka/
 
 ### 网关访问其他服务
 
-网关对其他模块默认的路由地址配置
+* 网关对其他模块默认的路由地址配置: 
 
 `http://localhost:9000/course-list/courses`
 
+course-list下的接口courses
+
+`http://localhost:9000/course-price/coursesAndPrice`
+
+course-price下的接口coursesAndPrice
+
+* 自定义配置 -> 注意配置了自定义地址之后, 默认地址失效
+
+application.properties中自定义配置前缀
+
+```properties
+# 自定义网关配置
+# 整个前缀
+zuul.prefix=/imooc
+
+# 给每个模块配置
+# course-list -> list
+zuul.routes.course-list.path=/list/**
+zuul.routes.course-list.service-id=course-list
+
+# course-price -> price
+zuul.routes.course-price.path=/price/**
+zuul.routes.course-price.service-id=course-price
+```
+
+浏览器访问新的自定义地址:
+
+`http://localhost:9000/imooc/list/courses`
+
+`http://localhost:9000/imooc/price/coursesAndPrice`
+
+注意这里的service-id就是其他模块配置的spring.application.name, 也就是要去Eureka中找的其他模块的id
+
+![image-20220110151938608](img/spring-cloud-course/image-20220110151938608.png)
 
 
 
@@ -1478,14 +1512,7 @@ eureka.client.service-url.defaultZone=http://localhost:8000/eureka/
 
 
 
-
-
-
-
-
-
-
-
+## 网关实现过滤器
 
 
 
