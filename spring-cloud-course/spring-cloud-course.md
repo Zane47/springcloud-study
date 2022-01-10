@@ -1506,33 +1506,175 @@ zuul.routes.course-price.service-id=course-price
 
 ![image-20220110151938608](img/spring-cloud-course/image-20220110151938608.png)
 
-
-
-
-
-
-
 ## 网关实现过滤器
 
+过滤器类型: 
 
+* pre过滤器在路由请求之前运行. 例如鉴权
 
+* route过滤器可以处理请求的实际路由
 
+* post路由请求后运行过滤器. 统计请求的时长
 
+* error如果在处理请求的过程中发生错误，则过滤器将运行
 
+一般接触pre和post
 
+---
 
+案例: 记录请求时长
+
+需要继承ZuulFilter, 其中有四个方法
+
+```java
+@Override
+public String filterType() {
+    // 过滤器类型
+    return null;
+}
+/**
+     * 过滤器顺序, 当过滤器较多时, 需要使用
+     */
+@Override
+public int filterOrder() {
+    return 0;
+}
+
+@Override
+public boolean shouldFilter() {
+    // 是否启用过滤器
+    return false;
+}
+
+@Override
+public Object run() throws ZuulException {
+    return null;
+}
+```
+
+这里写两个pre和post
+
+```java
+package com.imooc.course.filter;
+
+import com.netflix.zuul.ZuulFilter;
+import com.netflix.zuul.context.RequestContext;
+import com.netflix.zuul.exception.ZuulException;
+import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PreRequestFilter extends ZuulFilter {
+    @Override
+    public String filterType() {
+        // 过滤器类型
+        return FilterConstants.PRE_TYPE;
+    }
+
+    @Override
+    public int filterOrder() {
+        return 0;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        // 是否使用过滤器
+        return true;
+    }
+
+    @Override
+    public Object run() throws ZuulException {
+        RequestContext currentContext = RequestContext.getCurrentContext();
+        currentContext.set("startTime", System.currentTimeMillis());
+        System.out.println("preFilter has noted startTime");
+
+        return null;
+    }
+}
+```
+
+```java
+package com.imooc.course.filter;
+
+import com.netflix.zuul.ZuulFilter;
+import com.netflix.zuul.context.RequestContext;
+import com.netflix.zuul.exception.ZuulException;
+import org.springframework.cloud.netflix.zuul.filters.support.FilterConstants;
+import org.springframework.stereotype.Component;
+
+@Component
+public class PostRequestFilter extends ZuulFilter {
+    @Override
+    public String filterType() {
+        // 过滤器类型
+        return FilterConstants.POST_TYPE;
+    }
+
+    /**
+     * 过滤器顺序, 当过滤器较多时, 需要使用
+     *
+     * 此处过滤器发生的时间一定是在请求返回之前运行
+     */
+    @Override
+    public int filterOrder() {
+        return FilterConstants.SEND_RESPONSE_FILTER_ORDER - 1;
+    }
+
+    @Override
+    public boolean shouldFilter() {
+        // 是否启用过滤器
+        return true;
+    }
+
+    @Override
+    public Object run() throws ZuulException {
+        RequestContext currentContext = RequestContext.getCurrentContext();
+        Long startTime = (Long) currentContext.get("startTime");
+        long duration = System.currentTimeMillis() - startTime;
+        String requestURI = currentContext.getRequest().getRequestURI();
+        System.out.println("url: " + requestURI + "|" + "duration: " + duration);
+
+        return null;
+    }
+}
+```
+
+浏览器访问:
+
+`http://localhost:9000/imooc/price/coursesAndPrice`
+
+输出:
+
+```
+preFilter has noted startTime
+url: /imooc/price/coursesAndPrice|duration: 279
+```
 
 # 测试
 
-通过网关与不通过网关
+请求每个接口
 
+通过网关和不通过网关的都请求
 
+* 不通过网关: 
 
+`http://localhost:8081/courses`
 
+`http://localhost:8082/price?courseId=362`
 
+`http://localhost:8082/coursesInPrice`
 
+`http://localhost:8082/coursesAndPrice`
 
+* 通过网关
 
+`http://localhost:9000/imooc/list/courses`
+
+`http://localhost:9000/imooc/price/price?courseId=362`
+
+`http://localhost:9000/imooc/price/coursesInPrice`
+
+`http://localhost:9000/imooc/price/coursesAndPrice`
 
 
 
