@@ -1330,35 +1330,11 @@ public List<CourseAndPrice> getCourseAndPrice() {
 }
 ```
 
+4. 运行
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+浏览器访问: `http://localhost:8082/coursesAndPrice`
 
 ![image-20220110141204174](img/spring-cloud-course/image-20220110141204174.png)
-
-
-
-
-
-
-
-
-
-
 
 # 网关Zuul
 
@@ -1366,7 +1342,136 @@ public List<CourseAndPrice> getCourseAndPrice() {
 
 如果没有网关: 
 
-* 签名校验, 登录校验冗余问题
+* 签名校验, 登录校验冗余问题. 各个模块独立, 没有网关的话就需要在每一个模块都加校验的逻辑. 相似代码, 冗余
+
+Spring Cloud Zuul, Spring Cloud中的组件, 与Eureka整合, 自己也是Eureka的一个Client, 需要注册到Eureka中, 通过Eureka获取其他微服务模块的信息. 得到其他模块信息后, 将这些其他模块的信息注册到网关模块, 将访问进行收口. 例如: 上面的course-list是8081, course-price是8082, zuul是8083, 外部调用不用再根据需要的服务去不同模块, 而是直接访问网关(8083端口)而不必区分各个模块, 由网关做区分.
+
+另外的一大功能: 只需要在Zuul上做信息校验. 后续模块无需校验.
+
+## Zuul
+
+API网关允许将API请求(内部或外部)路由到正确的位置
+
+<img src="img/spring-cloud-course/image-20220110142519295.png" alt="image-20220110142519295" style="zoom:67%;" />
+
+user访问服务的时候并不会直接访问到右侧的服务, 而是访问网关, 网关从注册中心把服务信息拉下来, 网关再进行正确的转发即可. -> 网关的路由功能
+
+网关最重要的两个功能: 统一鉴权和正确路由
+
+## 集成Zuul
+
+把Zuul注册到Eureka这个注册中心
+
+引入依赖
+
+配置路由地址
+
+---
+
+### 网关注册到Eureka
+
+1. 在根目录下新增模块course-zuul, maven项目
+
+2. pom中引入依赖
+
+eureka-client, zuul
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>spring-cloud-course</artifactId>
+        <groupId>com.example</groupId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>course-zuul</artifactId>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <dependencies>
+
+        <!-- eureka-client -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+        </dependency>
+
+        <!-- zuul -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-netflix-zuul</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+3. springboot启动类
+
+网关启动类, @EnableZuulProxy说明是zuul网关
+
+```java
+package com.imooc.course;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.netflix.zuul.EnableZuulProxy;
+
+@EnableZuulProxy
+@SpringBootApplication
+public class ZuulGatewayApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(ZuulGatewayApplication.class, args);
+    }
+}
+```
+
+4. 配置application.properties
+
+```properties
+#application name
+spring.application.name=course-zuul
+
+# port
+server.port=9000
+
+# log
+logging.pattern.console=logging.pattern.console=%clr(%d{${LOG_DATEFORMAT_PATTERN:HH:mm:ss.SSS}}){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:%wEx}
+
+
+# eureka-client server地址
+eureka.client.service-url.defaultZone=http://localhost:8000/eureka/
+```
+
+5. 启动查看是否注册到了Eureka上
+
+访问`localhost:8000`
+
+![image-20220110145802483](img/spring-cloud-course/image-20220110145802483.png)
+
+### 网关访问其他服务
+
+网关对其他模块默认的路由地址配置
+
+`http://localhost:9000/course-list/courses`
+
+
 
 
 
