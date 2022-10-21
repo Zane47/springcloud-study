@@ -1057,6 +1057,142 @@ public class CoursePriceController {
 
 可以看到price中调用到了模块list的接口, 远程调用成功
 
+## Fegin参数
+
+* value/name：指定提供者的微服务名称
+* url：直接指定请求的路径地址
+* decode404：是否应该编码或者抛出FeignException异常
+* configuration：配置feign.codec.Decoder、feign.codec.Encoder、feign.Contract
+* fallback:指定发送异常调用或者超时时应该调用那个类来执行备用方法
+* fallbackFactory：提供统一的异常熔断处理，避免重复代码的编写
+* path：当服务提供者使用了server.context.path时。
+* contextId：用来唯一标识当一个微服务中存在多个FeignClient接口调用同一个服务提供者时的场景(若是不提供该属性值，则在程序启动时会启动失败，并提示如下信息)
+
+Bean优先级: contextId -> value -> name -> serviceId
+
+### contextId
+
+可以看到如果配置了contextId就会用contextId，如果没有配置就会去value然后是name最后是serviceId。默认都没有配置，当出现一个服务有多个Feign Client的时候就会报错了。
+
+比如我们有个user服务，但user服务中有很多个接口，我们不想将所有的调用接口都定义在一个类中，比如:
+
+Client 1
+
+```java
+@FeignClient(name = "optimization-user")
+public interface UserRemoteClient {
+	@GetMapping("/user/get")
+	public User getUser(@RequestParam("id") int id);
+}
+```
+
+Client 2
+
+```java
+@FeignClient(name = "optimization-user")
+public interface UserRemoteClient2 {
+	@GetMapping("/user2/get")
+	public User getUser(@RequestParam("id") int id);
+}
+```
+
+这种情况下启动就会报错了，因为Bean的名称冲突了，具体错误如下：
+
+```
+Description:
+The bean 'optimization-user.FeignClientSpecification', defined in null, could not be registered. A bean with that name has already been defined in null and overriding is disabled.
+Action:
+Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
+```
+
+解决方案可以增加下面的配置，作用是允许出现beanName一样的BeanDefinition。
+
+```
+spring.main.allow-bean-definition-overriding=true
+```
+
+另一种解决方案就是为每个Client手动指定不同的contextId，这样就不会冲突了。
+
+上面给出了Bean名称冲突后的解决方案，下面来分析下contextId在Feign Client的作用，在注册Feign Client Configuration的时候需要一个名称，名称是通过getClientName方法获取的：
+
+```java
+String name = getClientName(attributes);
+
+registerClientConfiguration(registry, name,
+attributes.get("configuration"));
+private String getClientName(Map<String, Object> client) {
+    if (client == null) {
+      return null;
+    }
+    String value = (String) client.get("contextId");
+    if (!StringUtils.hasText(value)) {
+      value = (String) client.get("value");
+    }
+    if (!StringUtils.hasText(value)) {
+      value = (String) client.get("name");
+    }
+    if (!StringUtils.hasText(value)) {
+      value = (String) client.get("serviceId");
+    }
+    if (StringUtils.hasText(value)) {
+      return value;
+    }
+
+
+    throw new IllegalStateException("Either 'name' or 'value' must be provided in @"
+        + FeignClient.class.getSimpleName());
+  }
+```
+
+可以看到如果配置了contextId就会用contextId，如果没有配置就会去value然后是name最后是serviceId。默认都没有配置，当出现一个服务有多个Feign Client的时候就会报错了。
+
+其次的作用是在注册FeignClient中，contextId会作为Client 别名的一部分，如果配置了qualifier优先用qualifier作为别名。
+
+```java
+private void registerFeignClient(BeanDefinitionRegistry registry,
+      AnnotationMetadata annotationMetadata, Map<String, Object> attributes) {
+    String className = annotationMetadata.getClassName();
+    BeanDefinitionBuilder definition = BeanDefinitionBuilder
+        .genericBeanDefinition(FeignClientFactoryBean.class);
+    validate(attributes);
+    definition.addPropertyValue("url", getUrl(attributes));
+    definition.addPropertyValue("path", getPath(attributes));
+    String name = getName(attributes);
+    definition.addPropertyValue("name", name);
+    String contextId = getContextId(attributes);
+    definition.addPropertyValue("contextId", contextId);
+    definition.addPropertyValue("type", className);
+    definition.addPropertyValue("decode404", attributes.get("decode404"));
+    definition.addPropertyValue("fallback", attributes.get("fallback"));
+    definition.addPropertyValue("fallbackFactory", attributes.get("fallbackFactory"));
+    definition.setAutowireMode(AbstractBeanDefinition.AUTOWIRE_BY_TYPE);
+
+    // 拼接别名
+    String alias = contextId + "FeignClient";
+    AbstractBeanDefinition beanDefinition = definition.getBeanDefinition();
+
+
+    boolean primary = (Boolean) attributes.get("primary"); // has a default, won't be
+                                // null
+
+
+    beanDefinition.setPrimary(primary);
+
+    // 配置了qualifier优先用qualifier
+    String qualifier = getQualifier(attributes);
+    if (StringUtils.hasText(qualifier)) {
+      alias = qualifier;
+    }
+
+
+    BeanDefinitionHolder holder = new BeanDefinitionHolder(beanDefinition, className,
+        new String[] { alias });
+    BeanDefinitionReaderUtils.registerBeanDefinition(holder, registry);
+  }
+```
+
+
+
 # Ribbon负载均衡
 
 ## 负载均衡的类型
